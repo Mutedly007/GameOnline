@@ -8,6 +8,7 @@ import { LobbyState } from '@/lib/types';
 import { useSettings } from '@/lib/SettingsContext';
 import { t } from '@/lib/i18n';
 import { sounds } from '@/lib/sounds';
+import { AvatarDisplay, AvatarCustomizer } from '@/components/Avatar';
 
 export default function LobbyPage({ params }: { params: Promise<{ roomCode: string }> }) {
   const { roomCode } = use(params);
@@ -16,12 +17,14 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [showCustomizer, setShowCustomizer] = useState(false);
 
   const socket = getSocket();
   const isHost = lobby?.hostId === socket.id;
   const joinUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/?room=${roomCode}`
     : '';
+  const myPlayer = lobby?.players.find((p) => p.id === socket.id);
 
   const playClick = () => { if (soundEnabled) sounds.click(); };
 
@@ -66,6 +69,16 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     socket.emit('startGame');
   };
 
+  const toggleReady = () => {
+    playClick();
+    socket.emit('toggleReady');
+  };
+
+  const handleAvatarChange = (update: Record<string, number>) => {
+    playClick();
+    socket.emit('updateAvatar', update);
+  };
+
   if (!lobby) {
     return (
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -73,6 +86,10 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
       </div>
     );
   }
+
+  const connectedPlayers = lobby.players.filter((p) => p.isConnected);
+  const allReady = connectedPlayers.every((p) => p.isReady);
+  const readyCount = connectedPlayers.filter((p) => p.isReady).length;
 
   return (
     <div className="container fade-in">
@@ -92,7 +109,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
       </div>
 
       <div className="qr-container">
-        <QRCodeSVG value={joinUrl} size={180} bgColor="#ffffff" fgColor="#0a0a1a" level="M" includeMargin={false} />
+        <QRCodeSVG value={joinUrl} size={140} bgColor="#ffffff" fgColor="#0a0a1a" level="M" includeMargin={false} />
         <p>{t(lang, 'scanToJoin')}</p>
       </div>
 
@@ -103,31 +120,65 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
 
       {error && <div className="error-msg">{error}</div>}
 
-      <div className="section-header">
+      {/* Avatar Customizer Toggle */}
+      <div style={{ textAlign: 'center', marginTop: '16px' }}>
+        <button className="btn btn-secondary" style={{ fontSize: '0.85rem', padding: '8px 20px' }} onClick={() => { setShowCustomizer(!showCustomizer); playClick(); }}>
+          {showCustomizer
+            ? (lang === 'fr' ? '🎨 Fermer le personnage' : lang === 'ar' ? '🎨 إغلاق التخصيص' : '🎨 Close Customizer')
+            : (lang === 'fr' ? '🎨 Personnaliser' : lang === 'ar' ? '🎨 تخصيص الشخصية' : '🎨 Customize Character')}
+        </button>
+      </div>
+
+      {showCustomizer && myPlayer && (
+        <AvatarCustomizer avatar={myPlayer.avatar} onChange={handleAvatarChange} />
+      )}
+
+      <div className="section-header" style={{ marginTop: '16px' }}>
         <h2>{t(lang, 'players')}</h2>
-        <span className="count">{lobby.players.filter((p) => p.isConnected).length} {t(lang, 'joined')}</span>
+        <span className="count">{readyCount}/{connectedPlayers.length} {lang === 'fr' ? 'prêts' : lang === 'ar' ? 'جاهزون' : 'ready'}</span>
       </div>
 
       <ul className="player-list">
-        {lobby.players.filter((p) => p.isConnected).map((player) => (
+        {connectedPlayers.map((player) => (
           <li key={player.id} className="player-item">
-            <div className="player-avatar">{player.name.charAt(0).toUpperCase()}</div>
+            <AvatarDisplay avatar={player.avatar} size={40} name={player.name} />
             <span className="player-name">{player.name}</span>
             {player.isHost && <span className="player-badge badge-host">{t(lang, 'host')}</span>}
             {player.id === socket.id && <span className="player-badge badge-you">{t(lang, 'you')}</span>}
+            <span className={`ready-indicator ${player.isReady ? 'is-ready' : 'not-ready'}`}>
+              {player.isReady ? '✅' : '⏳'}
+            </span>
           </li>
         ))}
       </ul>
 
-      <div style={{ marginTop: '24px' }}>
+      {/* Ready / Unready Button */}
+      <div style={{ marginTop: '16px' }}>
+        <button
+          className={`btn ${myPlayer?.isReady ? 'btn-secondary' : 'btn-success'}`}
+          onClick={toggleReady}
+        >
+          {myPlayer?.isReady
+            ? (lang === 'fr' ? '❌ Pas prêt' : lang === 'ar' ? '❌ غير جاهز' : '❌ Not Ready')
+            : (lang === 'fr' ? '✅ Prêt !' : lang === 'ar' ? '✅ جاهز!' : '✅ Ready!')}
+        </button>
+      </div>
+
+      <div style={{ marginTop: '12px' }}>
         {isHost ? (
-          <button className="btn btn-primary" onClick={startGame} disabled={lobby.players.filter((p) => p.isConnected).length < 2}>
-            {t(lang, 'startGame')} ({lobby.players.filter((p) => p.isConnected).length}/{lobby.maxPlayers} {t(lang, 'playersCount')})
+          <button className="btn btn-primary" onClick={startGame} disabled={!allReady || connectedPlayers.length < 2}>
+            {t(lang, 'startGame')} ({connectedPlayers.length}/{lobby.maxPlayers})
           </button>
         ) : (
           <p className="text-center text-muted text-sm">{t(lang, 'waitingForHost')}</p>
         )}
       </div>
+
+      {isHost && !allReady && connectedPlayers.length >= 2 && (
+        <p className="text-center text-xs text-muted mt-8">
+          ⏳ {lang === 'fr' ? 'En attente que tous soient prêts...' : lang === 'ar' ? 'في انتظار استعداد الجميع...' : 'Waiting for all players to be ready...'}
+        </p>
+      )}
 
       <div style={{ marginTop: '12px' }}>
         <p className="text-center text-xs text-muted">

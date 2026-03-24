@@ -21,6 +21,8 @@ export class LobbyService {
       socketId: hostSocketId,
       isHost: true,
       isConnected: true,
+      isReady: true,
+      avatar: { skinColor: 0, hat: 0, top: 0, glasses: 0, mustache: 0 },
     };
 
     const gameState: GameState = {
@@ -71,6 +73,8 @@ export class LobbyService {
       socketId,
       isHost: false,
       isConnected: true,
+      isReady: false,
+      avatar: { skinColor: 0, hat: 0, top: 0, glasses: 0, mustache: 0 },
     };
 
     lobby.players.push(player);
@@ -222,6 +226,8 @@ export class LobbyService {
         name: p.name,
         isHost: p.isHost,
         isConnected: p.isConnected,
+        isReady: p.isReady,
+        avatar: p.avatar,
       })),
       currentLetter: lobby.currentLetter,
       currentRound: lobby.currentRound,

@@ -11,6 +11,14 @@ export const CATEGORIES = [
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];
 
+export interface AvatarConfig {
+  skinColor: number;
+  hat: number;
+  top: number;
+  glasses: number;
+  mustache: number;
+}
+
 export interface LobbyState {
   roomCode: string;
   players: {
@@ -18,6 +26,8 @@ export interface LobbyState {
     name: string;
     isHost: boolean;
     isConnected: boolean;
+    isReady: boolean;
+    avatar: AvatarConfig;
   }[];
   currentLetter: string;
   currentRound: number;

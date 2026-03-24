@@ -206,6 +206,13 @@ function HomeContent() {
             </button>
           </div>
         )}
+
+        {/* Footer */}
+        <div className="text-center" style={{ marginTop: '40px', paddingBottom: '20px' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Made with ❤️ by <strong>Mutedly</strong> & <strong>Fletcha</strong>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -213,7 +220,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="container"><div className="logo"><h1>Bent w Weld</h1></div></div>}>
+    <Suspense fallback={<div className="container"><div className="logo"><h1>Bent Welad</h1></div></div>}>
       <HomeContent />
     </Suspense>
   );

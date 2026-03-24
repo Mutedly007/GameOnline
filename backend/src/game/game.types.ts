@@ -1,9 +1,19 @@
+export interface AvatarConfig {
+  skinColor: number;   // 0-4
+  hat: number;         // 0 = none, 1-5 = options
+  top: number;         // 0-5
+  glasses: number;     // 0 = none, 1-4
+  mustache: number;    // 0 = none, 1-3
+}
+
 export interface Player {
   id: string;
   name: string;
   socketId: string;
   isHost: boolean;
   isConnected: boolean;
+  isReady: boolean;
+  avatar: AvatarConfig;
 }
 
 export interface Answer {

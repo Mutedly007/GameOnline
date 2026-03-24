@@ -103,8 +103,15 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    if (lobby.players.length < 2) {
+    const connectedPlayers = lobby.players.filter((p) => p.isConnected);
+    if (connectedPlayers.length < 2) {
       client.emit('error', { message: 'Need at least 2 players to start' });
+      return;
+    }
+
+    const allReady = connectedPlayers.every((p) => p.isReady);
+    if (!allReady) {
+      client.emit('error', { message: 'All players must be ready' });
       return;
     }
 
@@ -116,6 +123,38 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Start server-controlled timer
     this.startTimer(lobby.roomCode);
+  }
+
+  @SubscribeMessage('toggleReady')
+  handleToggleReady(@ConnectedSocket() client: Socket) {
+    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    if (!lobby || lobby.gamePhase !== 'lobby') return;
+
+    const player = lobby.players.find((p) => p.socketId === client.id);
+    if (!player) return;
+
+    player.isReady = !player.isReady;
+    this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));
+  }
+
+  @SubscribeMessage('updateAvatar')
+  handleUpdateAvatar(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { skinColor?: number; hat?: number; top?: number; glasses?: number; mustache?: number },
+  ) {
+    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    if (!lobby || lobby.gamePhase !== 'lobby') return;
+
+    const player = lobby.players.find((p) => p.socketId === client.id);
+    if (!player) return;
+
+    if (data.skinColor !== undefined) player.avatar.skinColor = data.skinColor;
+    if (data.hat !== undefined) player.avatar.hat = data.hat;
+    if (data.top !== undefined) player.avatar.top = data.top;
+    if (data.glasses !== undefined) player.avatar.glasses = data.glasses;
+    if (data.mustache !== undefined) player.avatar.mustache = data.mustache;
+
+    this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));
   }
 
   private startTimer(roomCode: string) {
