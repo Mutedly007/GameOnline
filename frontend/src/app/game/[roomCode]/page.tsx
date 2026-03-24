@@ -1,0 +1,236 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSocket } from '@/lib/socket';
+import { LobbyState, CATEGORIES } from '@/lib/types';
+import { useSettings } from '@/lib/SettingsContext';
+import { t, getCategoryLabel } from '@/lib/i18n';
+import { sounds } from '@/lib/sounds';
+
+export default function GamePage({ params }: { params: Promise<{ roomCode: string }> }) {
+  const { roomCode } = use(params);
+  const router = useRouter();
+  const socket = getSocket();
+  const { lang, soundEnabled } = useSettings();
+
+  const [lobby, setLobby] = useState<LobbyState | null>(null);
+  const [timer, setTimer] = useState(60);
+  const [answers, setAnswers] = useState<Record<string, string>>({
+    bent: '', weld: '', job: '', famous: '', vegetable: '', jamad: '',
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedCount, setSubmittedCount] = useState(0);
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(3);
+  const [submitError, setSubmitError] = useState('');
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const answersRef = useRef(answers);
+  const submittedRef = useRef(submitted);
+
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { submittedRef.current = submitted; }, [submitted]);
+
+  // Countdown with sounds
+  useEffect(() => {
+    if (countdown === null) {
+      inputRefs.current[CATEGORIES[0].key]?.focus();
+      return;
+    }
+    if (countdown > 0) {
+      if (soundEnabled) sounds.countdownTick();
+      const t = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(t);
+    } else {
+      if (soundEnabled) sounds.countdownGo();
+      const t = setTimeout(() => setCountdown(null), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [countdown, soundEnabled]);
+
+  const [leaveNotice, setLeaveNotice] = useState('');
+
+  const handleEndRound = useCallback((data: { lobby: LobbyState }) => {
+    setLobby(data.lobby);
+    if (soundEnabled) sounds.roundEnd();
+    router.push(`/results/${roomCode}`);
+  }, [router, roomCode, soundEnabled]);
+
+  useEffect(() => {
+    socket.emit('getLobbyState', { roomCode });
+
+    socket.on('lobbyState', (data: LobbyState) => {
+      setLobby(data);
+      setTimer(data.timerRemaining);
+      // Don't trigger countdown on refresh/reconnect — only on gameStarted
+    });
+
+    socket.on('gameStarted', (data: LobbyState) => {
+      setLobby(data);
+      setTimer(data.timerRemaining);
+      setSubmitted(false);
+      setAnswers({ bent: '', weld: '', job: '', famous: '', vegetable: '', jamad: '' });
+      setCountdown(3);
+    });
+
+    socket.on('timerUpdate', (data: { remaining: number }) => {
+      setTimer(data.remaining);
+      if (data.remaining <= 5 && data.remaining > 0 && soundEnabled) sounds.timerWarning();
+    });
+
+    socket.on('playerSubmitted', (data: { totalSubmitted: number; totalPlayers: number }) => {
+      setSubmittedCount(data.totalSubmitted);
+      setTotalPlayers(data.totalPlayers);
+    });
+
+    socket.on('endRound', handleEndRound);
+
+    socket.on('forceSubmit', () => {
+      if (!submittedRef.current) {
+        socket.emit('submitAnswers', { roomCode, categories: answersRef.current });
+        setSubmitted(true);
+      }
+    });
+
+    socket.on('playerLeft', (data: { playerName: string; lobby: LobbyState }) => {
+      setLobby(data.lobby);
+      setLeaveNotice(`${data.playerName} ${lang === 'fr' ? 'a quitté la partie' : lang === 'ar' ? 'غادر اللعبة' : 'left the game'}`);
+      setTimeout(() => setLeaveNotice(''), 4000);
+    });
+
+    socket.on('gameFinished', (data: { lobby: LobbyState }) => {
+      setLobby(data.lobby);
+      router.push(`/results/${roomCode}`);
+    });
+
+    return () => {
+      socket.off('lobbyState');
+      socket.off('gameStarted');
+      socket.off('timerUpdate');
+      socket.off('playerSubmitted');
+      socket.off('endRound');
+      socket.off('forceSubmit');
+      socket.off('playerLeft');
+      socket.off('gameFinished');
+    };
+  }, [roomCode, socket, handleEndRound, soundEnabled, lang]);
+
+  const handleSubmit = () => {
+    if (submitted) return;
+    const allFilled = Object.values(answers).every((v) => v.trim() !== '');
+    if (!allFilled) {
+      setSubmitError(lang === 'fr' ? 'Remplissez tous les champs !' : lang === 'ar' ? 'املأ جميع الحقول!' : 'Fill in all fields!');
+      if (soundEnabled) sounds.error();
+      return;
+    }
+    setSubmitError('');
+    if (soundEnabled) sounds.submit();
+    socket.emit('submitAnswers', { roomCode, categories: answers });
+    setSubmitted(true);
+  };
+
+  const handleInputChange = (key: string, value: string) => {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
+    if (submitError) setSubmitError('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter') {
+      const cats = CATEGORIES.map((c) => c.key);
+      if (index < cats.length - 1) inputRefs.current[cats[index + 1]]?.focus();
+      else handleSubmit();
+    }
+  };
+
+  const circumference = 2 * Math.PI * 52;
+  const timerDuration = lobby?.timerDuration || 60;
+  const progress = (timer / timerDuration) * circumference;
+  const isUrgent = timer <= 10;
+
+  return (
+    <div className="container fade-in">
+      {countdown !== null && (
+        <div className="countdown-overlay">
+          <div className="countdown-number pop-in" key={countdown}>
+            {countdown > 0 ? countdown : 'GO!'}
+          </div>
+        </div>
+      )}
+
+      {leaveNotice && (
+        <div className="toast-notice">
+          🚪 {leaveNotice}
+        </div>
+      )}
+
+      <div className="round-info">
+        <span>{t(lang, 'round')}</span>
+        <strong>{lobby?.currentRound || 1} / {lobby?.totalRounds || 5}</strong>
+      </div>
+
+      <div className="letter-display">
+        <div className="letter-badge">{lobby?.currentLetter || '?'}</div>
+      </div>
+
+      <div className="timer-container">
+        <div className="timer-circle">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={isUrgent ? '#ef4444' : '#7c5cff'} />
+                <stop offset="100%" stopColor={isUrgent ? '#dc2626' : '#f472b6'} />
+              </linearGradient>
+            </defs>
+            <circle className="track" cx="60" cy="60" r="52" />
+            <circle className="progress" cx="60" cy="60" r="52" strokeDasharray={circumference} strokeDashoffset={circumference - progress} />
+          </svg>
+          <div className={`timer-value ${isUrgent ? 'urgent' : ''}`}>{timer}</div>
+        </div>
+      </div>
+
+      {submittedCount > 0 && (
+        <div className="text-center mb-16">
+          <span className="submitted-count">✅ {submittedCount}/{totalPlayers} {t(lang, 'submitted')}</span>
+        </div>
+      )}
+
+      {!submitted ? (
+        <>
+          <div className="category-grid">
+            {CATEGORIES.map((cat, index) => (
+              <div key={cat.key} className="category-item slide-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                <div className="category-icon">{cat.emoji}</div>
+                <div className="category-input">
+                  <div className="category-label">{getCategoryLabel(lang, cat.key)}</div>
+                  <input
+                    ref={(el) => { inputRefs.current[cat.key] = el; }}
+                    className="input"
+                    type="text"
+                    placeholder={`${getCategoryLabel(lang, cat.key)}...`}
+                    value={answers[cat.key]}
+                    onChange={(e) => handleInputChange(cat.key, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    autoComplete="off"
+                    autoCapitalize="words"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {submitError && <div className="error-msg mt-8">{submitError}</div>}
+          <button className="btn btn-success mt-24" onClick={handleSubmit}>{t(lang, 'submitAnswers')}</button>
+          <button className="btn btn-secondary mt-8" onClick={() => { if (soundEnabled) sounds.click(); router.push('/'); }}>
+            🚪 {lang === 'fr' ? 'Quitter la partie' : lang === 'ar' ? 'مغادرة اللعبة' : 'Leave Game'}
+          </button>
+        </>
+      ) : (
+        <div className="text-center mt-24 slide-in">
+          <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✅</div>
+          <h3 className="fw-700">{t(lang, 'answersSubmitted')}</h3>
+          <p className="text-sm text-muted mt-8">{t(lang, 'waitingOthers')}</p>
+        </div>
+      )}
+    </div>
+  );
+}
