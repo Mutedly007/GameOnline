@@ -215,7 +215,7 @@ export class LobbyService {
     lobby.currentLetter = this.gameService.generateLetter(roomCode);
     lobby.answers = [];
     lobby.votes = [];
-    lobby.gamePhase = 'playing';
+    lobby.gamePhase = 'letterPreview';
     lobby.timerRemaining = lobby.timerDuration;
 
     return lobby;

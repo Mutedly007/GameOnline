@@ -34,7 +34,7 @@ export interface LobbyState {
   totalRounds: number;
   timerDuration: number;
   timerRemaining: number;
-  gamePhase: 'lobby' | 'playing' | 'reviewing' | 'results' | 'finished';
+  gamePhase: 'lobby' | 'letterPreview' | 'playing' | 'reviewing' | 'results' | 'finished';
   answers: {
     playerId: string;
     playerName: string;

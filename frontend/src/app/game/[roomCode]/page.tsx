@@ -22,8 +22,9 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   const [submitted, setSubmitted] = useState(false);
   const [submittedCount, setSubmittedCount] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
-  const [countdown, setCountdown] = useState<number | null>(3);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState('');
+  const [letterPreview, setLetterPreview] = useState<LobbyState | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const answersRef = useRef(answers);
@@ -31,6 +32,8 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { submittedRef.current = submitted; }, [submitted]);
+
+  const isHost = lobby?.hostId === socket.id || letterPreview?.hostId === socket.id;
 
   // Countdown with sounds
   useEffect(() => {
@@ -58,16 +61,30 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   }, [router, roomCode, soundEnabled]);
 
   useEffect(() => {
-    socket.emit('getLobbyState', { roomCode });
+    const playerName = typeof window !== 'undefined' ? sessionStorage.getItem('playerName') || '' : '';
+    socket.emit('getLobbyState', { roomCode, playerName });
 
     socket.on('lobbyState', (data: LobbyState) => {
       setLobby(data);
       setTimer(data.timerRemaining);
-      // Don't trigger countdown on refresh/reconnect — only on gameStarted
+      // If we reconnect into a letterPreview phase, show it
+      if (data.gamePhase === 'letterPreview') {
+        setLetterPreview(data);
+      }
+    });
+
+    // Letter preview — show letter with skip/confirm options
+    socket.on('letterPreview', (data: LobbyState) => {
+      setLobby(data);
+      setLetterPreview(data);
+      setSubmitted(false);
+      setAnswers({ girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' });
+      if (soundEnabled) sounds.click();
     });
 
     socket.on('gameStarted', (data: LobbyState) => {
       setLobby(data);
+      setLetterPreview(null); // Hide preview
       setTimer(data.timerRemaining);
       setSubmitted(false);
       setAnswers({ girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' });
@@ -106,6 +123,7 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
 
     return () => {
       socket.off('lobbyState');
+      socket.off('letterPreview');
       socket.off('gameStarted');
       socket.off('timerUpdate');
       socket.off('playerSubmitted');
@@ -143,10 +161,82 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
     }
   };
 
+  const handleSkipLetter = () => {
+    if (soundEnabled) sounds.click();
+    socket.emit('skipLetter');
+  };
+
+  const handleConfirmLetter = () => {
+    if (soundEnabled) sounds.click();
+    socket.emit('confirmLetter');
+  };
+
   const circumference = 2 * Math.PI * 52;
   const timerDuration = lobby?.timerDuration || 60;
   const progress = (timer / timerDuration) * circumference;
   const isUrgent = timer <= 10;
+
+  // ── Letter Preview Screen ──
+  if (letterPreview) {
+    return (
+      <div className="container fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="round-info">
+          <span>{t(lang, 'round')}</span>
+          <strong>{letterPreview.currentRound || 1} / {letterPreview.totalRounds || 5}</strong>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>
+            {lang === 'fr' ? 'La lettre de ce tour est...' : lang === 'ar' ? 'حرف هذه الجولة هو...' : 'This round\'s letter is...'}
+          </p>
+        </div>
+
+        <div className="letter-display" style={{ margin: '24px 0' }}>
+          <div className="letter-badge pop-in" style={{ fontSize: '4rem', width: '120px', height: '120px', lineHeight: '120px' }}>
+            {letterPreview.currentLetter}
+          </div>
+        </div>
+
+        {/* Players list */}
+        <div style={{ width: '100%', maxWidth: '360px', margin: '16px auto' }}>
+          <div className="section-header">
+            <h2 style={{ fontSize: '1rem' }}>
+              {lang === 'fr' ? 'Joueurs' : lang === 'ar' ? 'اللاعبون' : 'Players'}
+            </h2>
+          </div>
+          <ul className="player-list" style={{ marginBottom: '16px' }}>
+            {letterPreview.players.filter(p => p.isConnected).map((player) => (
+              <li key={player.id} className="player-item" style={{ padding: '8px 12px' }}>
+                <div className="player-avatar" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }}>
+                  {player.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="player-name" style={{ fontSize: '0.9rem' }}>{player.name}</span>
+                {player.isHost && <span className="player-badge badge-host">{t(lang, 'host')}</span>}
+                {player.id === socket.id && <span className="player-badge badge-you">{t(lang, 'you')}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {isHost ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '320px' }}>
+            <button className="btn btn-primary" onClick={handleConfirmLetter} style={{ fontSize: '1.1rem', padding: '14px 24px' }}>
+              ✅ {lang === 'fr' ? 'Jouer avec cette lettre' : lang === 'ar' ? 'العب بهذا الحرف' : 'Play with this letter'}
+            </button>
+            <button className="btn btn-secondary" onClick={handleSkipLetter} style={{ fontSize: '1rem' }}>
+              🔄 {lang === 'fr' ? 'Changer la lettre' : lang === 'ar' ? 'غيّر الحرف' : 'Skip — different letter'}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center" style={{ marginTop: '12px' }}>
+            <p className="text-muted" style={{ fontSize: '0.95rem' }}>
+              ⏳ {lang === 'fr' ? 'L\'hôte choisit la lettre...' : lang === 'ar' ? 'المضيف يختار الحرف...' : 'Host is choosing the letter...'}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="container fade-in">
@@ -234,3 +324,4 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
     </div>
   );
 }
+

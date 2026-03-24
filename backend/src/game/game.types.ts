@@ -52,7 +52,7 @@ export interface GameState {
   timerDuration: number;
   timerRemaining: number;
   timerInterval: NodeJS.Timeout | null;
-  gamePhase: 'lobby' | 'playing' | 'reviewing' | 'results' | 'finished';
+  gamePhase: 'lobby' | 'letterPreview' | 'playing' | 'reviewing' | 'results' | 'finished';
   answers: Answer[];
   votes: VoteResult[];
   roundResults: RoundResult[];

@@ -3,24 +3,68 @@ import { AVAILABLE_LETTERS, CategoryKey, Answer } from './game.types';
 
 @Injectable()
 export class GameService {
-  private usedLetters: Map<string, string[]> = new Map(); // roomCode -> used letters
+  // Pre-shuffled queue of letters per room — ensures every letter is used before repeating
+  private letterQueues: Map<string, string[]> = new Map();
+  private usedLettersInGame: Map<string, string[]> = new Map(); // track used for display
+
+  /**
+   * Fisher-Yates shuffle for truly random ordering
+   */
+  private shuffle(arr: string[]): string[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private getOrCreateQueue(roomCode: string): string[] {
+    let queue = this.letterQueues.get(roomCode);
+    if (!queue || queue.length === 0) {
+      queue = this.shuffle([...AVAILABLE_LETTERS]);
+      this.letterQueues.set(roomCode, queue);
+    }
+    return queue;
+  }
 
   generateLetter(roomCode: string): string {
-    if (!this.usedLetters.has(roomCode)) {
-      this.usedLetters.set(roomCode, []);
-    }
-    const used = this.usedLetters.get(roomCode)!;
-    const available = AVAILABLE_LETTERS.filter((l) => !used.includes(l));
+    const queue = this.getOrCreateQueue(roomCode);
+    const letter = queue.shift()!;
+    this.letterQueues.set(roomCode, queue);
 
-    if (available.length === 0) {
-      // Reset if all letters used
-      this.usedLetters.set(roomCode, []);
-      return AVAILABLE_LETTERS[Math.floor(Math.random() * AVAILABLE_LETTERS.length)];
+    // Track used letters for this game session
+    if (!this.usedLettersInGame.has(roomCode)) {
+      this.usedLettersInGame.set(roomCode, []);
     }
+    this.usedLettersInGame.get(roomCode)!.push(letter);
 
-    const letter = available[Math.floor(Math.random() * available.length)];
-    used.push(letter);
     return letter;
+  }
+
+  /**
+   * Skip the current letter and generate a new one.
+   * Puts the skipped letter back into a random position in the queue.
+   */
+  skipAndGenerateNewLetter(roomCode: string, currentLetter: string): string {
+    // Remove from used list
+    const used = this.usedLettersInGame.get(roomCode);
+    if (used) {
+      const idx = used.lastIndexOf(currentLetter);
+      if (idx >= 0) used.splice(idx, 1);
+    }
+
+    // Put skipped letter back into queue at a random position
+    const queue = this.getOrCreateQueue(roomCode);
+    const insertPos = Math.floor(Math.random() * (queue.length + 1));
+    queue.splice(insertPos, 0, currentLetter);
+
+    // Now pick the next one
+    return this.generateLetter(roomCode);
+  }
+
+  getUsedLetters(roomCode: string): string[] {
+    return this.usedLettersInGame.get(roomCode) || [];
   }
 
   generateRoomCode(): string {
@@ -94,6 +138,7 @@ export class GameService {
   }
 
   clearRoom(roomCode: string): void {
-    this.usedLetters.delete(roomCode);
+    this.letterQueues.delete(roomCode);
+    this.usedLettersInGame.delete(roomCode);
   }
 }

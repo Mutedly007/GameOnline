@@ -10,6 +10,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { LobbyService } from './lobby.service';
+import { GameService } from '../game/game.service';
 
 @WebSocketGateway({
   cors: {
@@ -24,7 +25,10 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(LobbyGateway.name);
 
-  constructor(private readonly lobbyService: LobbyService) {}
+  constructor(
+    private readonly lobbyService: LobbyService,
+    private readonly gameService: GameService,
+  ) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -141,11 +145,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const updatedLobby = this.lobbyService.startNextRound(lobby.roomCode);
     if (!updatedLobby) return;
 
+    // Emit letter preview — host can skip or confirm before timer starts
     const publicState = this.lobbyService.getPublicState(updatedLobby);
-    this.server.to(lobby.roomCode).emit('gameStarted', publicState);
-
-    // Start server-controlled timer
-    this.startTimer(lobby.roomCode);
+    this.server.to(lobby.roomCode).emit('letterPreview', publicState);
   }
 
   @SubscribeMessage('toggleReady')
@@ -322,11 +324,41 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         lobby: this.lobbyService.getPublicState(updated),
       });
     } else {
-      this.server.to(lobby.roomCode).emit('gameStarted', {
+      // Emit letter preview — host can skip or confirm
+      this.server.to(lobby.roomCode).emit('letterPreview', {
         ...this.lobbyService.getPublicState(updated),
       });
-      this.startTimer(lobby.roomCode);
     }
+  }
+
+  @SubscribeMessage('skipLetter')
+  handleSkipLetter(@ConnectedSocket() client: Socket) {
+    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    if (!lobby || lobby.hostId !== client.id) return;
+    if (lobby.gamePhase !== 'letterPreview') return;
+
+    // Generate a new letter, putting the old one back
+    const oldLetter = lobby.currentLetter;
+    lobby.currentLetter = this.gameService.skipAndGenerateNewLetter(lobby.roomCode, oldLetter);
+
+    this.logger.log(`Host skipped letter ${oldLetter} -> ${lobby.currentLetter} in room ${lobby.roomCode}`);
+
+    this.server.to(lobby.roomCode).emit('letterPreview', this.lobbyService.getPublicState(lobby));
+  }
+
+  @SubscribeMessage('confirmLetter')
+  handleConfirmLetter(@ConnectedSocket() client: Socket) {
+    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    if (!lobby || lobby.hostId !== client.id) return;
+    if (lobby.gamePhase !== 'letterPreview') return;
+
+    // Move to playing phase and start the timer
+    lobby.gamePhase = 'playing';
+    const publicState = this.lobbyService.getPublicState(lobby);
+    this.server.to(lobby.roomCode).emit('gameStarted', publicState);
+    this.startTimer(lobby.roomCode);
+
+    this.logger.log(`Host confirmed letter ${lobby.currentLetter} in room ${lobby.roomCode}`);
   }
 
   @SubscribeMessage('getLobbyState')
