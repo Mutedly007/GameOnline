@@ -48,12 +48,13 @@ export const translations = {
     fillOneField: 'Fill in at least one answer!',
 
     // Categories
-    cat_bent: 'Girl Name',
-    cat_weld: 'Boy Name',
+    cat_girl: 'Girl Name',
+    cat_boy: 'Boy Name',
+    cat_animal: 'Animal',
+    cat_plant: 'Plant',
+    cat_object: 'Object',
+    cat_country: 'Country',
     cat_job: 'Profession',
-    cat_famous: 'Famous Person',
-    cat_vegetable: 'Vegetable/Fruit',
-    cat_jamad: 'Object',
 
     // Results
     review: '🔍 Review',
@@ -117,12 +118,13 @@ export const translations = {
     waitingOthers: 'En attente des autres joueurs...',
     fillOneField: 'Remplissez au moins une réponse !',
 
-    cat_bent: 'Prénom Fille',
-    cat_weld: 'Prénom Garçon',
+    cat_girl: 'Prénom Fille',
+    cat_boy: 'Prénom Garçon',
+    cat_animal: 'Animal',
+    cat_plant: 'Plante',
+    cat_object: 'Objet',
+    cat_country: 'Pays',
     cat_job: 'Métier',
-    cat_famous: 'Personne Célèbre',
-    cat_vegetable: 'Légume/Fruit',
-    cat_jamad: 'Objet',
 
     review: '🔍 Vérification',
     answers: '📝 Réponses',
@@ -184,12 +186,13 @@ export const translations = {
     waitingOthers: 'في انتظار اللاعبين الآخرين...',
     fillOneField: 'املأ إجابة واحدة على الأقل!',
 
-    cat_bent: 'اسم بنت',
-    cat_weld: 'اسم ولد',
+    cat_girl: 'اسم بنت',
+    cat_boy: 'اسم ولد',
+    cat_animal: 'حيوان',
+    cat_plant: 'نبات',
+    cat_object: 'جماد',
+    cat_country: 'بلاد',
     cat_job: 'مهنة',
-    cat_famous: 'شخص مشهور',
-    cat_vegetable: 'خضرة/فاكهة',
-    cat_jamad: 'جماد',
 
     review: '🔍 مراجعة',
     answers: '📝 الإجابات',

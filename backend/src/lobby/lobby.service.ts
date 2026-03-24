@@ -167,6 +167,7 @@ export class LobbyService {
       lobby.answers,
       lobby.votes,
       lobby.currentLetter,
+      lobby.hostId,
     );
 
     // Add to cumulative scores

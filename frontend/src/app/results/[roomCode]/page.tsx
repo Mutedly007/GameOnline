@@ -220,15 +220,15 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
                         && value.trim() !== ''
                     ).length;
 
-                    // Check votes
+                    // Check if host rejected this answer
                     const voteEntry = lobby.votes.find(
                       (v) => v.playerId === answer.playerId && v.category === cat.key
                     );
-                    const myVoted = (socket.id && voteEntry?.votedInvalid.includes(socket.id)) || false;
-                    const voteCount = voteEntry?.votedInvalid.length || 0;
+                    const hostRejected = voteEntry?.votedInvalid.includes(lobby.hostId) || false;
 
                     let statusClass = '';
-                    if (isEmpty || !startsWithLetter) statusClass = 'answer-invalid';
+                    if (hostRejected) statusClass = 'answer-invalid';
+                    else if (isEmpty || !startsWithLetter) statusClass = 'answer-invalid';
                     else if (duplicates > 1) statusClass = 'answer-duplicate';
                     else statusClass = 'answer-valid';
 
@@ -240,12 +240,12 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
                             {value || '—'}
                           </div>
                         </div>
-                        {isReviewing && answer.playerId !== socket.id && (
+                        {isReviewing && isHost && (
                           <button
-                            className={`vote-btn ${myVoted ? 'voted' : ''}`}
+                            className={`vote-btn ${hostRejected ? 'voted' : 'approved'}`}
                             onClick={() => handleVote(answer.playerId, cat.key)}
                           >
-                            ❌ {voteCount > 0 ? voteCount : ''}
+                            {hostRejected ? '❌' : '✅'}
                           </button>
                         )}
                       </div>

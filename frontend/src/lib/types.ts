@@ -1,10 +1,11 @@
 export const CATEGORIES = [
-  { key: 'bent', label: 'Bent', sublabel: 'Girl Name', emoji: '👧', labelAr: 'بنت' },
-  { key: 'weld', label: 'Weld', sublabel: 'Boy Name', emoji: '👦', labelAr: 'ولد' },
+  { key: 'girl', label: 'Girl', sublabel: 'Girl Name', emoji: '👧', labelAr: 'بنت' },
+  { key: 'boy', label: 'Boy', sublabel: 'Boy Name', emoji: '👦', labelAr: 'ولد' },
+  { key: 'animal', label: 'Animal', sublabel: 'Animal', emoji: '🐾', labelAr: 'حيوان' },
+  { key: 'plant', label: 'Plant', sublabel: 'Plant', emoji: '🌿', labelAr: 'نبات' },
+  { key: 'object', label: 'Object', sublabel: 'Object', emoji: '🪨', labelAr: 'جماد' },
+  { key: 'country', label: 'Country', sublabel: 'Country', emoji: '🌍', labelAr: 'بلاد' },
   { key: 'job', label: 'Job', sublabel: 'Profession', emoji: '💼', labelAr: 'خدمة' },
-  { key: 'famous', label: 'Famous', sublabel: 'Famous Person', emoji: '⭐', labelAr: 'مشهور' },
-  { key: 'vegetable', label: 'Vegetable', sublabel: 'Vegetable/Fruit', emoji: '🥬', labelAr: 'خضرة' },
-  { key: 'jamad', label: 'Jamad', sublabel: 'Object', emoji: '🪨', labelAr: 'جماد' },
 ] as const;
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];

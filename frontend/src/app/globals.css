@@ -504,6 +504,12 @@ body::before {
   color: var(--danger);
 }
 
+.vote-btn.approved {
+  background: var(--success-glow);
+  border-color: var(--success);
+  color: var(--success);
+}
+
 .vote-btn.voted {
   background: var(--danger-glow);
   border-color: var(--danger);

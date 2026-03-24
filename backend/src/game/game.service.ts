@@ -41,9 +41,10 @@ export class GameService {
     answers: Answer[],
     votes: { playerId: string; category: string; votedInvalid: string[] }[],
     letter: string,
+    hostId: string,
   ): Record<string, number> {
     const scores: Record<string, number> = {};
-    const categories: CategoryKey[] = ['bent', 'weld', 'job', 'famous', 'vegetable', 'jamad'];
+    const categories: CategoryKey[] = ['girl', 'boy', 'animal', 'plant', 'object', 'country', 'job'];
 
     // Initialize scores
     for (const answer of answers) {
@@ -59,15 +60,13 @@ export class GameService {
       }
 
       for (const { playerId, value } of categoryAnswers) {
-        // Check if voted invalid by majority
+        // Check if host rejected this answer
         const voteEntry = votes.find(
           (v) => v.playerId === playerId && v.category === category,
         );
-        const totalPlayers = answers.length;
-        const invalidVotes = voteEntry ? voteEntry.votedInvalid.length : 0;
+        const hostRejected = voteEntry ? voteEntry.votedInvalid.includes(hostId) : false;
 
-        if (invalidVotes > totalPlayers / 2) {
-          // Majority voted invalid
+        if (hostRejected) {
           scores[playerId] += 0;
           continue;
         }
@@ -86,7 +85,7 @@ export class GameService {
         if (duplicateCount > 1) {
           scores[playerId] += 0; // Duplicate
         } else {
-          scores[playerId] += 10; // Unique
+          scores[playerId] += 10; // Unique valid answer
         }
       }
     }

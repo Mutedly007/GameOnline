@@ -10,12 +10,13 @@ export interface Answer {
   playerId: string;
   playerName: string;
   categories: {
-    bent: string;      // Girl name
-    weld: string;      // Boy name
+    girl: string;      // Girl name
+    boy: string;       // Boy name
+    animal: string;    // Animal
+    plant: string;     // Plant
+    object: string;    // Object
+    country: string;   // Country
     job: string;       // Job
-    famous: string;    // Famous person
-    vegetable: string; // Vegetable
-    jamad: string;     // Object
   };
 }
 
@@ -50,12 +51,13 @@ export interface GameState {
 }
 
 export const CATEGORIES = [
-  { key: 'bent', label: 'Bent (Girl Name)', labelAr: 'بنت' },
-  { key: 'weld', label: 'Weld (Boy Name)', labelAr: 'ولد' },
+  { key: 'girl', label: 'Girl Name', labelAr: 'بنت' },
+  { key: 'boy', label: 'Boy Name', labelAr: 'ولد' },
+  { key: 'animal', label: 'Animal', labelAr: 'حيوان' },
+  { key: 'plant', label: 'Plant', labelAr: 'نبات' },
+  { key: 'object', label: 'Object', labelAr: 'جماد' },
+  { key: 'country', label: 'Country', labelAr: 'بلاد' },
   { key: 'job', label: 'Job', labelAr: 'خدمة' },
-  { key: 'famous', label: 'Famous Person', labelAr: 'مشهور' },
-  { key: 'vegetable', label: 'Vegetable', labelAr: 'خضرة' },
-  { key: 'jamad', label: 'Object (Jamad)', labelAr: 'جماد' },
 ] as const;
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];
