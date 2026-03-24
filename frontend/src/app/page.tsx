@@ -210,7 +210,7 @@ function HomeContent() {
         {/* Footer */}
         <div className="text-center" style={{ marginTop: '40px', paddingBottom: '20px' }}>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Made with ❤️ by <strong>Mutedly</strong> & <strong>Fletcha</strong>
+            Made with ❤️ by <strong>Medohamed Aziz Hammami</strong> & <strong>Ahmed Teieb</strong>
           </p>
         </div>
       </div>

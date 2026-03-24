@@ -180,24 +180,31 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
           clearInterval(currentLobby.timerInterval!);
           currentLobby.timerInterval = null;
 
-          // Auto-submit empty answers for players who didn't submit
-          const connectedPlayers = currentLobby.players.filter((p) => p.isConnected);
-          for (const player of connectedPlayers) {
-            const hasSubmitted = currentLobby.answers.some((a) => a.playerId === player.socketId);
-            if (!hasSubmitted) {
-              currentLobby.answers.push({
-                playerId: player.socketId,
-                playerName: player.name,
-                categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
-              });
+          // Tell all clients to submit their current answers NOW
+          this.server.to(roomCode).emit('forceSubmit');
+
+          // Wait 1s for clients to send their answers, then fill empty for stragglers
+          setTimeout(() => {
+            const lobbyNow = this.lobbyService.getLobby(roomCode);
+            if (!lobbyNow || lobbyNow.gamePhase !== 'playing') return;
+
+            const connectedPlayers = lobbyNow.players.filter((p) => p.isConnected);
+            for (const player of connectedPlayers) {
+              const hasSubmitted = lobbyNow.answers.some((a) => a.playerId === player.socketId);
+              if (!hasSubmitted) {
+                lobbyNow.answers.push({
+                  playerId: player.socketId,
+                  playerName: player.name,
+                  categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
+                });
+              }
             }
-          }
 
-          currentLobby.gamePhase = 'reviewing';
-
-          this.server.to(roomCode).emit('endRound', {
-            lobby: this.lobbyService.getPublicState(currentLobby),
-          });
+            lobbyNow.gamePhase = 'reviewing';
+            this.server.to(roomCode).emit('endRound', {
+              lobby: this.lobbyService.getPublicState(lobbyNow),
+            });
+          }, 1000);
         }
       }, 1000);
     }, 4000);

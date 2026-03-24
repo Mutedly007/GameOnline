@@ -8,7 +8,6 @@ import { LobbyState } from '@/lib/types';
 import { useSettings } from '@/lib/SettingsContext';
 import { t } from '@/lib/i18n';
 import { sounds } from '@/lib/sounds';
-import { AvatarDisplay, AvatarCustomizer } from '@/components/Avatar';
 
 export default function LobbyPage({ params }: { params: Promise<{ roomCode: string }> }) {
   const { roomCode } = use(params);
@@ -17,7 +16,6 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
-  const [showCustomizer, setShowCustomizer] = useState(false);
 
   const socket = getSocket();
   const isHost = lobby?.hostId === socket.id;
@@ -25,6 +23,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     ? `${window.location.origin}/?room=${roomCode}`
     : '';
   const myPlayer = lobby?.players.find((p) => p.id === socket.id);
+  const amReady = myPlayer?.isReady || false;
 
   const playClick = () => { if (soundEnabled) sounds.click(); };
 
@@ -74,11 +73,6 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     socket.emit('toggleReady');
   };
 
-  const handleAvatarChange = (update: Record<string, number>) => {
-    playClick();
-    socket.emit('updateAvatar', update);
-  };
-
   if (!lobby) {
     return (
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -120,19 +114,6 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
 
       {error && <div className="error-msg">{error}</div>}
 
-      {/* Avatar Customizer Toggle */}
-      <div style={{ textAlign: 'center', marginTop: '16px' }}>
-        <button className="btn btn-secondary" style={{ fontSize: '0.85rem', padding: '8px 20px' }} onClick={() => { setShowCustomizer(!showCustomizer); playClick(); }}>
-          {showCustomizer
-            ? (lang === 'fr' ? '🎨 Fermer le personnage' : lang === 'ar' ? '🎨 إغلاق التخصيص' : '🎨 Close Customizer')
-            : (lang === 'fr' ? '🎨 Personnaliser' : lang === 'ar' ? '🎨 تخصيص الشخصية' : '🎨 Customize Character')}
-        </button>
-      </div>
-
-      {showCustomizer && myPlayer && (
-        <AvatarCustomizer avatar={myPlayer.avatar} onChange={handleAvatarChange} />
-      )}
-
       <div className="section-header" style={{ marginTop: '16px' }}>
         <h2>{t(lang, 'players')}</h2>
         <span className="count">{readyCount}/{connectedPlayers.length} {lang === 'fr' ? 'prêts' : lang === 'ar' ? 'جاهزون' : 'ready'}</span>
@@ -141,30 +122,32 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
       <ul className="player-list">
         {connectedPlayers.map((player) => (
           <li key={player.id} className="player-item">
-            <AvatarDisplay avatar={player.avatar} size={40} name={player.name} />
+            <div className="player-avatar">{player.name.charAt(0).toUpperCase()}</div>
             <span className="player-name">{player.name}</span>
             {player.isHost && <span className="player-badge badge-host">{t(lang, 'host')}</span>}
             {player.id === socket.id && <span className="player-badge badge-you">{t(lang, 'you')}</span>}
-            <span className={`ready-indicator ${player.isReady ? 'is-ready' : 'not-ready'}`}>
-              {player.isReady ? '✅' : '⏳'}
+            <span className={`ready-badge ${player.isReady ? 'ready-yes' : 'ready-no'}`}>
+              {player.isReady
+                ? (lang === 'fr' ? 'Prêt' : lang === 'ar' ? 'جاهز' : 'Ready')
+                : (lang === 'fr' ? 'Pas prêt' : lang === 'ar' ? 'غير جاهز' : 'Not ready')}
             </span>
           </li>
         ))}
       </ul>
 
-      {/* Ready / Unready Button */}
-      <div style={{ marginTop: '16px' }}>
+      {/* Big clear Ready / Not Ready toggle */}
+      <div style={{ marginTop: '20px' }}>
         <button
-          className={`btn ${myPlayer?.isReady ? 'btn-secondary' : 'btn-success'}`}
+          className={`btn ready-toggle-btn ${amReady ? 'ready-toggle-on' : 'ready-toggle-off'}`}
           onClick={toggleReady}
         >
-          {myPlayer?.isReady
-            ? (lang === 'fr' ? '❌ Pas prêt' : lang === 'ar' ? '❌ غير جاهز' : '❌ Not Ready')
-            : (lang === 'fr' ? '✅ Prêt !' : lang === 'ar' ? '✅ جاهز!' : '✅ Ready!')}
+          {amReady
+            ? (lang === 'fr' ? '🟢 Vous êtes PRÊT — Appuyez pour annuler' : lang === 'ar' ? '🟢 أنت جاهز — اضغط للإلغاء' : '🟢 You are READY — Tap to unready')
+            : (lang === 'fr' ? '🔴 Appuyez quand vous êtes PRÊT' : lang === 'ar' ? '🔴 اضغط عندما تكون جاهزًا' : '🔴 Tap when you are READY')}
         </button>
       </div>
 
-      <div style={{ marginTop: '12px' }}>
+      <div style={{ marginTop: '16px' }}>
         {isHost ? (
           <button className="btn btn-primary" onClick={startGame} disabled={!allReady || connectedPlayers.length < 2}>
             {t(lang, 'startGame')} ({connectedPlayers.length}/{lobby.maxPlayers})
