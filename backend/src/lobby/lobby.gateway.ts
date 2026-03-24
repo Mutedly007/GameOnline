@@ -30,33 +30,43 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client connected: ${client.id}`);
   }
 
+  // Track pending disconnects for grace period
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
-    const result = this.lobbyService.leaveLobby(client.id);
-    if (result) {
-      const { lobby, roomCode, playerName } = result;
-      const connectedPlayers = lobby.players.filter((p) => p.isConnected);
-      const isInGame = ['playing', 'reviewing', 'results'].includes(lobby.gamePhase);
 
-      // Always notify remaining players who left
-      this.server.to(roomCode).emit('playerLeft', {
-        playerName,
-        lobby: this.lobbyService.getPublicState(lobby),
-      });
+    // Use a grace period so quick reconnects (page nav) don't trigger leave
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(client.id);
+      const result = this.lobbyService.leaveLobby(client.id);
+      if (result) {
+        const { lobby, roomCode, playerName } = result;
+        const connectedPlayers = lobby.players.filter((p) => p.isConnected);
+        const isInGame = ['playing', 'reviewing', 'results'].includes(lobby.gamePhase);
 
-      // If only 1 player left during a game, end the game
-      if (isInGame && connectedPlayers.length <= 1) {
-        if (lobby.timerInterval) {
-          clearInterval(lobby.timerInterval);
-          lobby.timerInterval = null;
-        }
-        lobby.gamePhase = 'finished';
-        this.server.to(roomCode).emit('gameFinished', {
+        // Always notify remaining players who left
+        this.server.to(roomCode).emit('playerLeft', {
+          playerName,
           lobby: this.lobbyService.getPublicState(lobby),
         });
-        this.logger.log(`Game ${roomCode} ended: only 1 player remaining after ${playerName} left`);
+
+        // If only 1 player left during a game, end the game
+        if (isInGame && connectedPlayers.length <= 1) {
+          if (lobby.timerInterval) {
+            clearInterval(lobby.timerInterval);
+            lobby.timerInterval = null;
+          }
+          lobby.gamePhase = 'finished';
+          this.server.to(roomCode).emit('gameFinished', {
+            lobby: this.lobbyService.getPublicState(lobby),
+          });
+          this.logger.log(`Game ${roomCode} ended: only 1 player remaining after ${playerName} left`);
+        }
       }
-    }
+    }, 3000); // 3 second grace period
+
+    this.disconnectTimers.set(client.id, timer);
   }
 
   @SubscribeMessage('createLobby')
@@ -81,6 +91,19 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { roomCode: string; playerName: string },
   ) {
+    // Cancel any pending disconnect for a previous socket with this name
+    // (handles rapid reconnect scenarios)
+    for (const [oldSocketId, timer] of this.disconnectTimers.entries()) {
+      const oldLobby = this.lobbyService.findLobbyBySocket(oldSocketId);
+      if (oldLobby) {
+        const oldPlayer = oldLobby.players.find((p) => p.socketId === oldSocketId && p.name === data.playerName);
+        if (oldPlayer) {
+          clearTimeout(timer);
+          this.disconnectTimers.delete(oldSocketId);
+        }
+      }
+    }
+
     const lobby = this.lobbyService.joinLobby(data.roomCode, data.playerName, client.id);
 
     if (!lobby) {
@@ -309,10 +332,47 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('getLobbyState')
   handleGetLobbyState(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomCode: string },
+    @MessageBody() data: { roomCode: string; playerName?: string },
   ) {
     const lobby = this.lobbyService.getLobby(data.roomCode);
     if (lobby) {
+      // Re-join the socket room so this client receives future broadcasts
+      client.join(lobby.roomCode);
+
+      // If playerName provided, update the player's socketId (handles reconnection)
+      if (data.playerName) {
+        const player = lobby.players.find((p) => p.name === data.playerName);
+        if (player) {
+          // Cancel any pending disconnect timer for the old socket
+          if (player.socketId !== client.id && this.disconnectTimers.has(player.socketId)) {
+            clearTimeout(this.disconnectTimers.get(player.socketId));
+            this.disconnectTimers.delete(player.socketId);
+          }
+
+          const oldSocketId = player.socketId;
+          player.socketId = client.id;
+          player.id = client.id;
+          player.isConnected = true;
+
+          // Update hostId if this player is the host
+          if (player.isHost || lobby.hostId === oldSocketId) {
+            lobby.hostId = client.id;
+          }
+
+          // Transfer cumulative score to new socketId
+          if (oldSocketId !== client.id && lobby.cumulativeScores[oldSocketId] !== undefined) {
+            lobby.cumulativeScores[client.id] = lobby.cumulativeScores[oldSocketId];
+            delete lobby.cumulativeScores[oldSocketId];
+          }
+
+          this.logger.log(`Player ${data.playerName} reconnected in room ${data.roomCode} (${oldSocketId} -> ${client.id})`);
+
+          // Notify all players of the updated state
+          this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));
+          return;
+        }
+      }
+
       client.emit('lobbyState', this.lobbyService.getPublicState(lobby));
     } else {
       client.emit('error', { message: 'Room not found' });

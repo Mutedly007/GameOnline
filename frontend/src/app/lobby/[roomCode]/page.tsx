@@ -25,6 +25,14 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
   const myPlayer = lobby?.players.find((p) => p.id === socket.id);
   const amReady = myPlayer?.isReady || false;
 
+  // Get player name from sessionStorage (set when creating/joining)
+  const getPlayerName = () => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('playerName') || '';
+    }
+    return '';
+  };
+
   const playClick = () => { if (soundEnabled) sounds.click(); };
 
   const handleLobbyUpdate = useCallback((data: LobbyState) => {
@@ -32,7 +40,8 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
   }, []);
 
   useEffect(() => {
-    socket.emit('getLobbyState', { roomCode });
+    const playerName = getPlayerName();
+    socket.emit('getLobbyState', { roomCode, playerName });
 
     socket.on('lobbyState', handleLobbyUpdate);
     socket.on('playerJoined', (data: LobbyState) => {
@@ -45,12 +54,20 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     });
     socket.on('error', (data: { message: string }) => setError(data.message));
 
+    // Re-request lobby state on socket reconnect so we rejoin the room
+    const handleReconnect = () => {
+      const name = getPlayerName();
+      socket.emit('getLobbyState', { roomCode, playerName: name });
+    };
+    socket.on('connect', handleReconnect);
+
     return () => {
       socket.off('lobbyState');
       socket.off('playerJoined');
       socket.off('playerLeft');
       socket.off('gameStarted');
       socket.off('error');
+      socket.off('connect', handleReconnect);
     };
   }, [roomCode, socket, router, handleLobbyUpdate, soundEnabled]);
 

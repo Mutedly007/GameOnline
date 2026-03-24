@@ -67,6 +67,7 @@ function HomeContent() {
     setError('');
     setLoading(true);
     playClick();
+    sessionStorage.setItem('playerName', playerName.trim());
     const socket = getSocket();
     socket.emit('createLobby', { playerName: playerName.trim(), timerDuration, totalRounds, maxPlayers });
   };
@@ -85,6 +86,7 @@ function HomeContent() {
     setError('');
     setLoading(true);
     playClick();
+    sessionStorage.setItem('playerName', playerName.trim());
     const socket = getSocket();
     socket.emit('joinLobby', { roomCode: roomCode.trim().toUpperCase(), playerName: playerName.trim() });
   };

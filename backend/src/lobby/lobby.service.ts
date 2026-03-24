@@ -55,9 +55,22 @@ export class LobbyService {
     // Check if player is reconnecting
     const existing = lobby.players.find((p) => p.name === playerName);
     if (existing) {
+      const oldSocketId = existing.socketId;
       existing.socketId = socketId;
       existing.id = socketId;
       existing.isConnected = true;
+
+      // Update hostId if this reconnecting player is the host
+      if (existing.isHost || lobby.hostId === oldSocketId) {
+        lobby.hostId = socketId;
+      }
+
+      // Transfer cumulative score to new socketId
+      if (oldSocketId !== socketId && lobby.cumulativeScores[oldSocketId] !== undefined) {
+        lobby.cumulativeScores[socketId] = lobby.cumulativeScores[oldSocketId];
+        delete lobby.cumulativeScores[oldSocketId];
+      }
+
       return lobby;
     }
 
