@@ -4,7 +4,7 @@ import { SettingsProvider } from '@/lib/SettingsContext';
 import SettingsModal from '@/components/SettingsModal';
 
 export const metadata: Metadata = {
-  title: 'Bent Welad | بنت ولاد',
+  title: 'Bent Walad | بنت ولد',
   description: 'Real-time multiplayer Tunisian category and letter game. Challenge your friends!',
 };
 

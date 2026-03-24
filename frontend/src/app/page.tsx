@@ -99,7 +99,7 @@ function HomeContent() {
 
         <div className="logo">
           <h1>{t(lang, 'title')}</h1>
-          <p className="subtitle">{t(lang, 'subtitle')}</p>
+          <p className="subtitle" style={{ fontSize: '1.4rem' }}>{t(lang, 'subtitle')}</p>
         </div>
 
         <p className="text-center text-sm text-muted mb-16" style={{ marginTop: '8px' }}>
@@ -220,7 +220,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="container"><div className="logo"><h1>Bent Welad</h1></div></div>}>
+    <Suspense fallback={<div className="container"><div className="logo"><h1>Bent Walad</h1></div></div>}>
       <HomeContent />
     </Suspense>
   );

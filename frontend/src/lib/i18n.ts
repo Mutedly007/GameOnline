@@ -5,8 +5,8 @@ export type Language = 'en' | 'fr' | 'ar';
 export const translations = {
   en: {
     // Home page
-    title: 'Bent Welad',
-    subtitle: 'بنت ولاد',
+    title: 'Bent Walad',
+    subtitle: 'بنت ولد',
     tagline: 'The classic Tunisian category game — now online!',
     yourName: 'Your Name',
     enterName: 'Enter your name...',
@@ -79,8 +79,8 @@ export const translations = {
     language: 'Language',
   },
   fr: {
-    title: 'Bent w Weld',
-    subtitle: 'بنت و ولد',
+    title: 'Bent Walad',
+    subtitle: 'بنت ولد',
     tagline: 'Le jeu tunisien classique — maintenant en ligne !',
     yourName: 'Votre Nom',
     enterName: 'Entrez votre nom...',
@@ -148,8 +148,8 @@ export const translations = {
     language: 'Langue',
   },
   ar: {
-    title: 'بنت ولاد',
-    subtitle: 'Bent Welad',
+    title: 'بنت ولد',
+    subtitle: 'Bent Walad',
     tagline: 'اللعبة التونسية الكلاسيكية — الآن أونلاين!',
     yourName: 'اسمك',
     enterName: 'أدخل اسمك...',
