@@ -5,8 +5,8 @@ export type Language = 'en' | 'fr' | 'ar';
 export const translations = {
   en: {
     // Home page
-    title: 'Bent w Weld',
-    subtitle: 'بنت و ولد',
+    title: 'Bent Welad',
+    subtitle: 'بنت ولاد',
     tagline: 'The classic Tunisian category game — now online!',
     yourName: 'Your Name',
     enterName: 'Enter your name...',
@@ -55,6 +55,7 @@ export const translations = {
     cat_object: 'Object',
     cat_country: 'Country',
     cat_job: 'Profession',
+    cat_famous: 'Famous Person',
 
     // Results
     review: '🔍 Review',
@@ -125,6 +126,7 @@ export const translations = {
     cat_object: 'Objet',
     cat_country: 'Pays',
     cat_job: 'Métier',
+    cat_famous: 'Personne Célèbre',
 
     review: '🔍 Vérification',
     answers: '📝 Réponses',
@@ -146,8 +148,8 @@ export const translations = {
     language: 'Langue',
   },
   ar: {
-    title: 'بنت و ولد',
-    subtitle: 'Bent w Weld',
+    title: 'بنت ولاد',
+    subtitle: 'Bent Welad',
     tagline: 'اللعبة التونسية الكلاسيكية — الآن أونلاين!',
     yourName: 'اسمك',
     enterName: 'أدخل اسمك...',
@@ -193,6 +195,7 @@ export const translations = {
     cat_object: 'جماد',
     cat_country: 'بلاد',
     cat_job: 'مهنة',
+    cat_famous: 'شخص مشهور',
 
     review: '🔍 مراجعة',
     answers: '📝 الإجابات',

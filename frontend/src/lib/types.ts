@@ -6,6 +6,7 @@ export const CATEGORIES = [
   { key: 'object', label: 'Object', sublabel: 'Object', emoji: '🪨', labelAr: 'جماد' },
   { key: 'country', label: 'Country', sublabel: 'Country', emoji: '🌍', labelAr: 'بلاد' },
   { key: 'job', label: 'Job', sublabel: 'Profession', emoji: '💼', labelAr: 'خدمة' },
+  { key: 'famous', label: 'Famous', sublabel: 'Famous Person', emoji: '⭐', labelAr: 'مشهور' },
 ] as const;
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];

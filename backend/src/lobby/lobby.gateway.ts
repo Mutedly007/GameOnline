@@ -140,6 +140,20 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (currentLobby.timerRemaining <= 0) {
           clearInterval(currentLobby.timerInterval!);
           currentLobby.timerInterval = null;
+
+          // Auto-submit empty answers for players who didn't submit
+          const connectedPlayers = currentLobby.players.filter((p) => p.isConnected);
+          for (const player of connectedPlayers) {
+            const hasSubmitted = currentLobby.answers.some((a) => a.playerId === player.socketId);
+            if (!hasSubmitted) {
+              currentLobby.answers.push({
+                playerId: player.socketId,
+                playerName: player.name,
+                categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
+              });
+            }
+          }
+
           currentLobby.gamePhase = 'reviewing';
 
           this.server.to(roomCode).emit('endRound', {

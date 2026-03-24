@@ -44,7 +44,7 @@ export class GameService {
     hostId: string,
   ): Record<string, number> {
     const scores: Record<string, number> = {};
-    const categories: CategoryKey[] = ['girl', 'boy', 'animal', 'plant', 'object', 'country', 'job'];
+    const categories: CategoryKey[] = ['girl', 'boy', 'animal', 'plant', 'object', 'country', 'job', 'famous'];
 
     // Initialize scores
     for (const answer of answers) {

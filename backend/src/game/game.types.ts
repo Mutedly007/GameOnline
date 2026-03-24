@@ -17,6 +17,7 @@ export interface Answer {
     object: string;    // Object
     country: string;   // Country
     job: string;       // Job
+    famous: string;    // Famous person
   };
 }
 
@@ -58,6 +59,7 @@ export const CATEGORIES = [
   { key: 'object', label: 'Object', labelAr: 'جماد' },
   { key: 'country', label: 'Country', labelAr: 'بلاد' },
   { key: 'job', label: 'Job', labelAr: 'خدمة' },
+  { key: 'famous', label: 'Famous Person', labelAr: 'مشهور' },
 ] as const;
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];

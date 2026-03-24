@@ -17,7 +17,7 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [timer, setTimer] = useState(60);
   const [answers, setAnswers] = useState<Record<string, string>>({
-    girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '',
+    girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [submittedCount, setSubmittedCount] = useState(0);
@@ -70,7 +70,7 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
       setLobby(data);
       setTimer(data.timerRemaining);
       setSubmitted(false);
-      setAnswers({ girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '' });
+      setAnswers({ girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' });
       setCountdown(3);
     });
 
