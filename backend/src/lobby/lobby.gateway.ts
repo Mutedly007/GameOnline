@@ -297,11 +297,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       totalPlayers: lobby.players.filter((p) => p.isConnected).length,
     });
 
-    // If this is the first submission, and there are more than 1 player, force everyone else to submit
     const connectedPlayers = lobby.players.filter((p) => p.isConnected).length;
-    if (lobby.answers.length === 1 && connectedPlayers > 1) {
-      this.server.to(data.roomCode).emit('forceSubmit');
-    }
 
     // If all players submitted, end round early
     if (lobby.answers.length >= connectedPlayers) {

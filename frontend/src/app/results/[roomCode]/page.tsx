@@ -168,7 +168,7 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
     .sort(([, a], [, b]) => b - a);
 
   return (
-    <div className="container fade-in">
+    <div className="container container-wide fade-in">
       <div className="top-nav">
         <button className="nav-back" onClick={() => { playClick(); router.push('/'); }}>← {lang === 'fr' ? 'Accueil' : lang === 'ar' ? 'الرئيسية' : 'Home'}</button>
         <button className="nav-settings" onClick={() => { playClick(); setShowSettings(true); }}>⚙️</button>
@@ -199,6 +199,7 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
 
       {tab === 'answers' && (
         <div>
+          <div className="review-cards-grid">
           {currentAnswers.map((answer) => {
             const playerRoundScore = roundScores[answer.playerId];
             return (
@@ -262,6 +263,7 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
               </div>
             );
           })}
+          </div>
 
           {isHost && isReviewing && (
             <button className="btn btn-success mt-16" onClick={handleFinishVoting}>

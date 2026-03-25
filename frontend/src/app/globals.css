@@ -77,6 +77,16 @@ body::before {
   min-height: 100dvh;
 }
 
+.container.container-wide {
+  max-width: 900px;
+}
+
+.review-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+
 /* ===== Logo ===== */
 .logo {
   text-align: center;
@@ -685,7 +695,6 @@ body::before {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 16px;
-  margin-bottom: 12px;
 }
 
 .review-card-header {
@@ -703,20 +712,20 @@ body::before {
 .review-answers {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .review-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: var(--bg-secondary);
   border-radius: var(--radius-xs);
 }
 
 .review-category {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -724,7 +733,7 @@ body::before {
 
 .review-answer {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 /* ===== Animations ===== */
@@ -1199,6 +1208,15 @@ body::before {
 }
 
 /* Small screens */
+@media (max-width: 480px) {
+  .review-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .container.container-wide {
+    max-width: 480px;
+  }
+}
+
 @media (max-width: 380px) {
   .container { padding: 14px; }
   .logo h1 { font-size: 2rem; }
@@ -1209,8 +1227,8 @@ body::before {
   .room-code { font-size: 1.8rem; letter-spacing: 4px; }
   .qr-container { padding: 16px; }
   .qr-container svg { width: 140px !important; height: 140px !important; }
-  .review-card { padding: 12px; }
-  .review-row { padding: 6px 8px; }
+  .review-card { padding: 10px; }
+  .review-row { padding: 5px 8px; }
   .podium-container { height: 200px; gap: 10px; }
   .podium-bar { font-size: 2rem; padding-top: 12px; }
   .finished-overlay .trophy { font-size: 3rem; }
