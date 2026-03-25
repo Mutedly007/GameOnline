@@ -210,7 +210,7 @@ export class LobbyService {
     const lobby = this.lobbies.get(roomCode);
     if (!lobby) return null;
 
-    if (lobby.currentRound >= lobby.totalRounds) {
+    if (lobby.currentRound > lobby.totalRounds) {
       lobby.gamePhase = 'finished';
       return lobby;
     }

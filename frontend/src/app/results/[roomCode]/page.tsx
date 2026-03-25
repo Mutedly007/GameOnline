@@ -61,6 +61,7 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
   };
 
   const handleFinishVoting = () => {
+    playClick();
     socket.emit('finishVoting');
   };
 
