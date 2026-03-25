@@ -210,11 +210,13 @@ export class LobbyService {
     const lobby = this.lobbies.get(roomCode);
     if (!lobby) return null;
 
-    if (lobby.currentRound > lobby.totalRounds) {
+    // If we've completed all rounds, finish the game
+    if (lobby.currentRound >= lobby.totalRounds) {
       lobby.gamePhase = 'finished';
       return lobby;
     }
 
+    // Otherwise, increment and start the next round
     lobby.currentRound++;
     lobby.currentLetter = this.gameService.generateLetter(roomCode);
     lobby.answers = [];
