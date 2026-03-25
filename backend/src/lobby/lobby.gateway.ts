@@ -145,6 +145,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const updatedLobby = this.lobbyService.startNextRound(lobby.roomCode);
     if (!updatedLobby) return;
 
+    // Ensure socket is in the room
+    client.join(lobby.roomCode);
+
     // Emit letter preview — host can skip or confirm before timer starts
     const publicState = this.lobbyService.getPublicState(updatedLobby);
     this.server.to(lobby.roomCode).emit('letterPreview', publicState);
@@ -157,6 +160,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const player = lobby.players.find((p) => p.socketId === client.id);
     if (!player) return;
+
+    // Ensure socket is in the room
+    client.join(lobby.roomCode);
 
     player.isReady = !player.isReady;
     this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));

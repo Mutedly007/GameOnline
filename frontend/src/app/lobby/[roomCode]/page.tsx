@@ -52,6 +52,9 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     socket.on('gameStarted', () => {
       router.push(`/game/${roomCode}`);
     });
+    socket.on('letterPreview', () => {
+      router.push(`/game/${roomCode}`);
+    });
     socket.on('error', (data: { message: string }) => setError(data.message));
 
     // Re-request lobby state on socket reconnect so we rejoin the room
@@ -66,6 +69,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
       socket.off('playerJoined');
       socket.off('playerLeft');
       socket.off('gameStarted');
+      socket.off('letterPreview');
       socket.off('error');
       socket.off('connect', handleReconnect);
     };
