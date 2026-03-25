@@ -25,13 +25,18 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   const [countdown, setCountdown] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [letterPreview, setLetterPreview] = useState<LobbyState | null>(null);
+  const [disbandedMsg, setDisbandedMsg] = useState('');
+  const [spinningLetter, setSpinningLetter] = useState('');
+  const [spinDone, setSpinDone] = useState(false);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const answersRef = useRef(answers);
   const submittedRef = useRef(submitted);
+  const disbandedRef = useRef(disbandedMsg);
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { submittedRef.current = submitted; }, [submitted]);
+  useEffect(() => { disbandedRef.current = disbandedMsg; }, [disbandedMsg]);
 
   const isHost = lobby?.hostId === socket.id || letterPreview?.hostId === socket.id;
 
@@ -53,6 +58,47 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   }, [countdown, soundEnabled]);
 
   const [leaveNotice, setLeaveNotice] = useState('');
+
+  // Slot-machine letter spin animation
+  const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY';
+  useEffect(() => {
+    if (!letterPreview) return;
+
+    const target = letterPreview.currentLetter;
+    setSpinDone(false);
+    setSpinningLetter('');
+
+    // Schedule ~20 rapid cycles that decelerate
+    const totalSteps = 20;
+    let step = 0;
+    let timeout: NodeJS.Timeout;
+
+    const spin = () => {
+      step++;
+      if (step >= totalSteps) {
+        // Final — land on the real letter
+        setSpinningLetter(target);
+        setSpinDone(true);
+        return;
+      }
+      // Pick a random letter (avoid showing the target too early)
+      let randLetter = ALL_LETTERS[Math.floor(Math.random() * ALL_LETTERS.length)];
+      if (step < totalSteps - 3 && randLetter === target) {
+        randLetter = ALL_LETTERS[(ALL_LETTERS.indexOf(randLetter) + 1) % ALL_LETTERS.length];
+      }
+      setSpinningLetter(randLetter);
+
+      // Decelerate: start at 50ms, end at ~200ms
+      const delay = 50 + Math.pow(step / totalSteps, 2) * 200;
+      timeout = setTimeout(spin, delay);
+    };
+
+    // Start after a tiny delay
+    timeout = setTimeout(spin, 100);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [letterPreview?.currentLetter, letterPreview?.currentRound]);
 
   const handleEndRound = useCallback((data: { lobby: LobbyState }) => {
     setLobby(data.lobby);
@@ -112,13 +158,28 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
 
     socket.on('playerLeft', (data: { playerName: string; lobby: LobbyState }) => {
       setLobby(data.lobby);
-      setLeaveNotice(`${data.playerName} ${lang === 'fr' ? 'a quitté la partie' : lang === 'ar' ? 'غادر اللعبة' : 'left the game'}`);
-      setTimeout(() => setLeaveNotice(''), 4000);
+      const msg = `${data.playerName} ${lang === 'fr' ? 'a quitté la partie' : lang === 'ar' ? 'غادر اللعبة' : 'left the game'}`;
+      setLeaveNotice(msg);
+
+      // If game finished because player left, show disbanded screen
+      if (data.lobby.gamePhase === 'finished') {
+        setDisbandedMsg(msg);
+        if (soundEnabled) sounds.error();
+        // Redirect to home after a delay
+        setTimeout(() => {
+          router.push('/');
+        }, 4000);
+      } else {
+        setTimeout(() => setLeaveNotice(''), 4000);
+      }
     });
 
     socket.on('gameFinished', (data: { lobby: LobbyState }) => {
       setLobby(data.lobby);
-      router.push(`/results/${roomCode}`);
+      // Only redirect if not already showing disbanded screen
+      if (!disbandedRef.current) {
+        router.push(`/results/${roomCode}`);
+      }
     });
 
     return () => {
@@ -176,6 +237,27 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   const progress = (timer / timerDuration) * circumference;
   const isUrgent = timer <= 10;
 
+  // ── Game Disbanded Screen ──
+  if (disbandedMsg) {
+    return (
+      <div className="container fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
+        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🚪</div>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '12px' }}>
+          {lang === 'fr' ? 'Partie annulée' : lang === 'ar' ? 'اللعبة ألغيت' : 'Game Disbanded'}
+        </h2>
+        <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '24px' }}>
+          {disbandedMsg}
+        </p>
+        <p className="text-muted text-sm">
+          {lang === 'fr' ? 'Retour à l\'accueil...' : lang === 'ar' ? 'العودة إلى الصفحة الرئيسية...' : 'Returning to home...'}
+        </p>
+        <button className="btn btn-primary mt-24" onClick={() => router.push('/')}>
+          {lang === 'fr' ? 'Accueil' : lang === 'ar' ? 'الرئيسية' : 'Go Home'}
+        </button>
+      </div>
+    );
+  }
+
   // ── Letter Preview Screen ──
   if (letterPreview) {
     return (
@@ -187,13 +269,26 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>
-            {lang === 'fr' ? 'La lettre de ce tour est...' : lang === 'ar' ? 'حرف هذه الجولة هو...' : 'This round\'s letter is...'}
+            {spinDone
+              ? (lang === 'fr' ? 'La lettre de ce tour est...' : lang === 'ar' ? 'حرف هذه الجولة هو...' : 'This round\'s letter is...')
+              : (lang === 'fr' ? 'Choix de la lettre...' : lang === 'ar' ? 'اختيار الحرف...' : 'Picking a letter...')}
           </p>
         </div>
 
         <div className="letter-display" style={{ margin: '24px 0' }}>
-          <div className="letter-badge pop-in" style={{ fontSize: '4rem', width: '120px', height: '120px', lineHeight: '120px' }}>
-            {letterPreview.currentLetter}
+          <div
+            className={`letter-badge ${spinDone ? 'pop-in' : ''}`}
+            style={{
+              fontSize: '4rem',
+              width: '120px',
+              height: '120px',
+              lineHeight: '120px',
+              transition: spinDone ? 'transform 0.3s ease' : 'none',
+              transform: spinDone ? 'scale(1.15)' : 'scale(1)',
+              opacity: spinningLetter ? 1 : 0.3,
+            }}
+          >
+            {spinningLetter || '?'}
           </div>
         </div>
 
@@ -218,8 +313,8 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
           </ul>
         </div>
 
-        {isHost ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '320px' }}>
+        {isHost && spinDone ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '320px' }} className="fade-in">
             <button className="btn btn-primary" onClick={handleConfirmLetter} style={{ fontSize: '1.1rem', padding: '14px 24px' }}>
               ✅ {lang === 'fr' ? 'Jouer avec cette lettre' : lang === 'ar' ? 'العب بهذا الحرف' : 'Play with this letter'}
             </button>
@@ -228,15 +323,19 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
             </button>
           </div>
         ) : (
-          <div className="text-center" style={{ marginTop: '12px' }}>
-            <p className="text-muted" style={{ fontSize: '0.95rem' }}>
-              ⏳ {lang === 'fr' ? 'L\'hôte choisit la lettre...' : lang === 'ar' ? 'المضيف يختار الحرف...' : 'Host is choosing the letter...'}
-            </p>
-          </div>
+          spinDone ? (
+            <div className="text-center fade-in" style={{ marginTop: '12px' }}>
+              <p className="text-muted" style={{ fontSize: '0.95rem' }}>
+                ⏳ {lang === 'fr' ? 'L\'hôte choisit la lettre...' : lang === 'ar' ? 'المضيف يختار الحرف...' : 'Host is choosing the letter...'}
+              </p>
+            </div>
+          ) : null
         )}
       </div>
+
     );
   }
+
 
   return (
     <div className="container fade-in">

@@ -47,7 +47,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (result) {
         const { lobby, roomCode, playerName } = result;
         const connectedPlayers = lobby.players.filter((p) => p.isConnected);
-        const isInGame = ['playing', 'reviewing', 'results'].includes(lobby.gamePhase);
+        const isInGame = ['letterPreview', 'playing', 'reviewing', 'results'].includes(lobby.gamePhase);
 
         // Always notify remaining players who left
         this.server.to(roomCode).emit('playerLeft', {

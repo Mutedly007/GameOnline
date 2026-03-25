@@ -26,13 +26,18 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
   }, []);
 
   useEffect(() => {
-    socket.emit('getLobbyState', { roomCode });
+    const playerName = typeof window !== 'undefined' ? sessionStorage.getItem('playerName') || '' : '';
+    socket.emit('getLobbyState', { roomCode, playerName });
 
     socket.on('lobbyState', handleUpdate);
     socket.on('endRound', handleUpdate);
     socket.on('voteUpdated', handleUpdate);
     socket.on('roundResults', handleUpdate);
     socket.on('gameStarted', () => router.push(`/game/${roomCode}`));
+    socket.on('letterPreview', () => router.push(`/game/${roomCode}`));
+    socket.on('playerLeft', (data: { playerName: string; lobby: LobbyState }) => {
+      handleUpdate(data);
+    });
     socket.on('gameFinished', (data: LobbyState | { lobby: LobbyState }) => {
       handleUpdate(data);
       if (soundEnabled) sounds.victory();
@@ -44,6 +49,8 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
       socket.off('voteUpdated');
       socket.off('roundResults');
       socket.off('gameStarted');
+      socket.off('letterPreview');
+      socket.off('playerLeft');
       socket.off('gameFinished');
     };
   }, [roomCode, socket, router, handleUpdate]);
