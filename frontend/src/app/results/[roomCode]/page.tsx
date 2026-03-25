@@ -17,6 +17,7 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
 
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [tab, setTab] = useState<'answers' | 'scores'>('answers');
+  const [selectedPlayerIdx, setSelectedPlayerIdx] = useState(0);
 
   const isHost = lobby?.hostId === socket.id;
 
@@ -199,8 +200,31 @@ export default function ResultsPage({ params }: { params: Promise<{ roomCode: st
 
       {tab === 'answers' && (
         <div>
+          {/* Mobile Player Navigation */}
+          <div className="mobile-player-nav">
+            <button
+              className="nav-arrow"
+              onClick={() => setSelectedPlayerIdx(Math.max(0, selectedPlayerIdx - 1))}
+              disabled={selectedPlayerIdx === 0}
+            >
+              ←
+            </button>
+            <span className="nav-counter">
+              {currentAnswers.length > 0 ? selectedPlayerIdx + 1 : 0} / {currentAnswers.length}
+            </span>
+            <button
+              className="nav-arrow"
+              onClick={() => setSelectedPlayerIdx(Math.min(currentAnswers.length - 1, selectedPlayerIdx + 1))}
+              disabled={selectedPlayerIdx === currentAnswers.length - 1}
+            >
+              →
+            </button>
+          </div>
           <div className="review-cards-grid">
-          {currentAnswers.map((answer) => {
+          {currentAnswers.map((answer, idx) => {
+            // On mobile, only show selected player; on desktop, show all
+            const isMobile = typeof window !== 'undefined' && window.innerWidth <= 480;
+            if (isMobile && idx !== selectedPlayerIdx) return null;
             const playerRoundScore = roundScores[answer.playerId];
             return (
               <div key={answer.playerId} className="review-card slide-in">

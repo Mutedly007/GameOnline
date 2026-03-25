@@ -87,6 +87,45 @@ body::before {
   gap: 12px;
 }
 
+/* Mobile Player Navigation */
+.mobile-player-nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mobile-player-nav .nav-arrow {
+  padding: 8px 14px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.mobile-player-nav .nav-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mobile-player-nav .nav-arrow:not(:disabled):hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.mobile-player-nav .nav-counter {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 60px;
+  text-align: center;
+}
+
 /* ===== Logo ===== */
 .logo {
   text-align: center;
@@ -1226,6 +1265,9 @@ body::before {
 @media (max-width: 480px) {
   .review-cards-grid {
     grid-template-columns: 1fr;
+  }
+  .mobile-player-nav {
+    display: flex;
   }
   .container.container-wide {
     max-width: 480px;

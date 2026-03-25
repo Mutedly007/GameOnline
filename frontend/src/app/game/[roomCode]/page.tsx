@@ -101,10 +101,17 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   }, [letterPreview?.currentLetter, letterPreview?.currentRound]);
 
   const handleEndRound = useCallback((data: { lobby: LobbyState }) => {
+    // If we haven't submitted yet, send our current answers
+    if (!submittedRef.current) {
+      socket.emit('submitAnswers', { roomCode, categories: answersRef.current });
+    }
     setLobby(data.lobby);
     if (soundEnabled) sounds.roundEnd();
-    router.push(`/results/${roomCode}`);
-  }, [router, roomCode, soundEnabled]);
+    // Delay navigation to allow submit to process
+    setTimeout(() => {
+      router.push(`/results/${roomCode}`);
+    }, 100);
+  }, [router, roomCode, soundEnabled, socket]);
 
   useEffect(() => {
     const playerName = typeof window !== 'undefined' ? sessionStorage.getItem('playerName') || '' : '';
