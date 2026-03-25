@@ -37,6 +37,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
 
   const handleLobbyUpdate = useCallback((data: LobbyState) => {
     setLobby(data);
+    setError(''); // Clear stale errors on any lobby state update
   }, []);
 
   useEffect(() => {
@@ -85,11 +86,13 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
   };
 
   const startGame = () => {
+    setError(''); // Clear previous error before attempting
     playClick();
     socket.emit('startGame');
   };
 
   const toggleReady = () => {
+    setError('');
     playClick();
     socket.emit('toggleReady');
   };

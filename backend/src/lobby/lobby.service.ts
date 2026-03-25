@@ -132,6 +132,10 @@ export class LobbyService {
     return null;
   }
 
+  getAllLobbies(): GameState[] {
+    return Array.from(this.lobbies.values());
+  }
+
   submitAnswers(roomCode: string, answer: Answer): GameState | null {
     const lobby = this.lobbies.get(roomCode);
     if (!lobby || lobby.gamePhase !== 'playing') return null;

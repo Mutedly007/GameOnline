@@ -124,11 +124,25 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('startGame')
   handleStartGame(@ConnectedSocket() client: Socket) {
-    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    let lobby = this.lobbyService.findLobbyBySocket(client.id);
+
+    // Fallback: if socket isn't mapped yet (reconnect race), try to find lobby where this client should be host
+    if (!lobby) {
+      for (const l of this.lobbyService.getAllLobbies()) {
+        if (l.hostId === client.id) {
+          lobby = l;
+          break;
+        }
+      }
+    }
+
     if (!lobby || lobby.hostId !== client.id) {
       client.emit('error', { message: 'Only the host can start the game' });
       return;
     }
+
+    // Ensure socket is in the room early
+    client.join(lobby.roomCode);
 
     const connectedPlayers = lobby.players.filter((p) => p.isConnected);
     if (connectedPlayers.length < 2) {
@@ -145,9 +159,6 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const updatedLobby = this.lobbyService.startNextRound(lobby.roomCode);
     if (!updatedLobby) return;
 
-    // Ensure socket is in the room
-    client.join(lobby.roomCode);
-
     // Emit letter preview — host can skip or confirm before timer starts
     const publicState = this.lobbyService.getPublicState(updatedLobby);
     this.server.to(lobby.roomCode).emit('letterPreview', publicState);
@@ -155,11 +166,31 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('toggleReady')
   handleToggleReady(@ConnectedSocket() client: Socket) {
-    const lobby = this.lobbyService.findLobbyBySocket(client.id);
-    if (!lobby || lobby.gamePhase !== 'lobby') return;
+    let lobby = this.lobbyService.findLobbyBySocket(client.id);
+    let player: any = null;
 
-    const player = lobby.players.find((p) => p.socketId === client.id);
-    if (!player) return;
+    if (lobby && lobby.gamePhase === 'lobby') {
+      player = lobby.players.find((p) => p.socketId === client.id);
+    }
+
+    // Fallback: if socket ID isn't mapped (reconnect race), search all lobbies for this socket
+    if (!player) {
+      for (const l of this.lobbyService.getAllLobbies()) {
+        if (l.gamePhase !== 'lobby') continue;
+        // Check if any player in this lobby has this socketId via the socket room
+        const p = l.players.find((pl) => pl.socketId === client.id || pl.id === client.id);
+        if (p) {
+          lobby = l;
+          player = p;
+          // Update socketId to current
+          player.socketId = client.id;
+          player.id = client.id;
+          break;
+        }
+      }
+    }
+
+    if (!lobby || !player || lobby.gamePhase !== 'lobby') return;
 
     // Ensure socket is in the room
     client.join(lobby.roomCode);
