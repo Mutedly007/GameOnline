@@ -58,6 +58,14 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     });
     socket.on('error', (data: { message: string }) => setError(data.message));
 
+    socket.on('playerKicked', () => {
+      playClick();
+      setError(lang === 'fr' ? 'Vous avez été expulsé du lobby!' : lang === 'ar' ? 'تم طردك من الغرفة!' : 'You were kicked from the lobby!');
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+    });
+
     // Re-request lobby state on socket reconnect so we rejoin the room
     const handleReconnect = () => {
       const name = getPlayerName();
@@ -72,6 +80,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
       socket.off('gameStarted');
       socket.off('letterPreview');
       socket.off('error');
+      socket.off('playerKicked');
       socket.off('connect', handleReconnect);
     };
   }, [roomCode, socket, router, handleLobbyUpdate, soundEnabled]);
@@ -95,6 +104,12 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
     setError('');
     playClick();
     socket.emit('toggleReady');
+  };
+
+  const kickPlayer = (playerId: string) => {
+    setError('');
+    playClick();
+    socket.emit('kickPlayer', { playerId });
   };
 
   if (!lobby) {
@@ -155,6 +170,16 @@ export default function LobbyPage({ params }: { params: Promise<{ roomCode: stri
                 ? (lang === 'fr' ? 'Prêt' : lang === 'ar' ? 'جاهز' : 'Ready')
                 : (lang === 'fr' ? 'Pas prêt' : lang === 'ar' ? 'غير جاهز' : 'Not ready')}
             </span>
+            {isHost && player.id !== socket.id && (
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => kickPlayer(player.id)}
+                style={{ marginLeft: 'auto', padding: '4px 12px', fontSize: '0.8rem' }}
+                title={t(lang, 'kickPlayer')}
+              >
+                🚪 {t(lang, 'kick')}
+              </button>
+            )}
           </li>
         ))}
       </ul>

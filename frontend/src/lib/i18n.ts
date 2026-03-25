@@ -80,6 +80,8 @@ export const translations = {
     rules: 'Rules',
     howToPlay: 'How to Play',
     rulesText: 'Bent Walad is a classic Tunisian word game. Players must come up with words starting with a given letter for 8 different categories: Girl Name, Boy Name, Animal, Plant, Object, Country, Job, and Famous Person. The first player to submit their answers ends the round for everyone. Answers are then reviewed and voted on by players. Points are awarded for unique valid answers. The player with the most points at the end wins!',
+    kick: 'Kick',
+    kickPlayer: 'Kick Player',
   },
   fr: {
     title: 'Bent Walad',
@@ -152,6 +154,8 @@ export const translations = {
     rules: 'Règles',
     howToPlay: 'Comment Jouer',
     rulesText: 'Bent Walad est un jeu de mots tunisien classique. Les joueurs doivent trouver des mots commençant par une lettre donnée pour 8 catégories différentes : Prénom Fille, Prénom Garçon, Animal, Plante, Objet, Pays, Métier et Personne Célèbre. Le premier joueur à soumettre ses réponses termine la manche pour tout le monde. Les réponses sont ensuite examinées et votées par les joueurs. Des points sont attribués pour les réponses uniques et valides. Le joueur avec le plus de points à la fin gagne !',
+    kick: 'Expulser',
+    kickPlayer: 'Expulser le Joueur',
   },
   ar: {
     title: 'بنت ولد',
@@ -224,6 +228,8 @@ export const translations = {
     rules: 'القواعد',
     howToPlay: 'كيفية اللعب',
     rulesText: 'بنت ولد هي لعبة كلمات تونسية كلاسيكية. يجب على اللاعبين ابتكار كلمات تبدأ بحرف معين لـ 8 فئات مختلفة: اسم بنت، اسم ولد، حيوان، نبات، جماد، بلاد، مهنة، وشخص مشهور. أول لاعب يرسل إجاباته ينهي الجولة للجميع. ثم يتم مراجعة الإجابات والتصويت عليها من قبل اللاعبين. يتم منح النقاط للإجابات الفريدة والصحيحة. اللاعب الذي يحصل على أكبر عدد من النقاط في النهاية يفوز!',
+    kick: 'طرد',
+    kickPlayer: 'طرد اللاعب',
   },
 } as const;
 

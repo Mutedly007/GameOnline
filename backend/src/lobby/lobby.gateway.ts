@@ -219,6 +219,32 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));
   }
 
+  @SubscribeMessage('kickPlayer')
+  handleKickPlayer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { playerId: string },
+  ) {
+    const lobby = this.lobbyService.findLobbyBySocket(client.id);
+    if (!lobby || lobby.hostId !== client.id || lobby.gamePhase !== 'lobby') return;
+
+    const playerToKick = lobby.players.find((p) => p.id === data.playerId);
+    if (!playerToKick) return;
+
+    // Remove the player from the lobby
+    lobby.players = lobby.players.filter((p) => p.id !== data.playerId);
+
+    // If a player was kicked, notify all players in the room
+    this.server.to(lobby.roomCode).emit('lobbyState', this.lobbyService.getPublicState(lobby));
+
+    // Notify the kicked player that they were removed
+    const kickedSocket = this.server.to(playerToKick.socketId);
+    if (kickedSocket) {
+      kickedSocket.emit('playerKicked', { reason: 'You were kicked from the lobby by the host' });
+    }
+
+    this.logger.log(`Player ${playerToKick.name} was kicked from room ${lobby.roomCode} by host`);
+  }
+
   private startTimer(roomCode: string) {
     const lobby = this.lobbyService.getLobby(roomCode);
     if (!lobby) return;
@@ -280,6 +306,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const lobby = this.lobbyService.getLobby(data.roomCode);
     if (!lobby) return;
 
+    // Only prevent submissions if the round has already moved to reviewing
+    if (lobby.gamePhase !== 'playing') return;
+
     const player = lobby.players.find((p) => p.socketId === client.id);
     if (!player) return;
 
@@ -297,29 +326,44 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       totalPlayers: lobby.players.filter((p) => p.isConnected).length,
     });
 
-    // End round immediately when first player submits
-    if (lobby.timerInterval) {
-      clearInterval(lobby.timerInterval);
-      lobby.timerInterval = null;
-    }
-
-    // Fill empty answers for players who haven't submitted
     const connectedPlayers = lobby.players.filter((p) => p.isConnected);
-    for (const p of connectedPlayers) {
-      const hasSubmitted = lobby.answers.some((a) => a.playerId === p.socketId);
-      if (!hasSubmitted) {
-        lobby.answers.push({
-          playerId: p.socketId,
-          playerName: p.name,
-          categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
-        });
-      }
-    }
+    const hasFirstSubmission = lobby.answers.length === 1; // Just received the first answer
 
-    lobby.gamePhase = 'reviewing';
-    this.server.to(data.roomCode).emit('endRound', {
-      lobby: this.lobbyService.getPublicState(lobby),
-    });
+    // If this is the first submission, end round for everyone
+    if (hasFirstSubmission) {
+      // Stop the timer immediately
+      if (lobby.timerInterval) {
+        clearInterval(lobby.timerInterval);
+        lobby.timerInterval = null;
+      }
+
+      // Tell all OTHER players to force submit their current answers
+      this.server.to(data.roomCode).emit('forceSubmit');
+
+      // Wait 1000ms for other players to submit their answers, then fill empty and transition
+      setTimeout(() => {
+        const lobbyNow = this.lobbyService.getLobby(data.roomCode);
+        if (!lobbyNow || lobbyNow.gamePhase !== 'playing') return;
+
+        // Fill empty answers for any player who still hasn't submitted
+        for (const p of connectedPlayers) {
+          const hasSubmitted = lobbyNow.answers.some((a) => a.playerId === p.socketId);
+          if (!hasSubmitted) {
+            lobbyNow.answers.push({
+              playerId: p.socketId,
+              playerName: p.name,
+              categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
+            });
+          }
+        }
+
+        // Transition to reviewing phase and notify all players
+        lobbyNow.gamePhase = 'reviewing';
+        this.server.to(data.roomCode).emit('endRound', {
+          lobby: this.lobbyService.getPublicState(lobbyNow),
+        });
+      }, 1000);
+    }
   }
 
   @SubscribeMessage('voteAnswer')
