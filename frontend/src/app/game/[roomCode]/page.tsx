@@ -266,12 +266,13 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
   }
 
   // ── Letter Preview Screen ──
-  if (letterPreview) {
+  if (letterPreview || (lobby && lobby.gamePhase === 'letterPreview')) {
+    const previewData = letterPreview || lobby!;
     return (
       <div className="container fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div className="round-info">
           <span>{t(lang, 'round')}</span>
-          <strong>{letterPreview.currentRound || 1} / {letterPreview.totalRounds || 5}</strong>
+          <strong>{previewData!.currentRound || 1} / {previewData!.totalRounds || 5}</strong>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
@@ -295,7 +296,7 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
               opacity: spinningLetter ? 1 : 0.3,
             }}
           >
-            {spinningLetter || '?'}
+            {spinningLetter || previewData!.currentLetter || '?'}
           </div>
         </div>
 
@@ -307,7 +308,7 @@ export default function GamePage({ params }: { params: Promise<{ roomCode: strin
             </h2>
           </div>
           <ul className="player-list" style={{ marginBottom: '16px' }}>
-            {letterPreview.players.filter(p => p.isConnected).map((player) => (
+            {previewData!.players.filter(p => p.isConnected).map((player) => (
               <li key={player.id} className="player-item" style={{ padding: '8px 12px' }}>
                 <div className="player-avatar" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }}>
                   {player.name.charAt(0).toUpperCase()}
