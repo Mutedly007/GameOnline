@@ -8,6 +8,7 @@ import { LobbyState } from '@/lib/types';
 import { useSettings } from '@/lib/SettingsContext';
 import { t } from '@/lib/i18n';
 import { sounds } from '@/lib/sounds';
+import RulesModal from '@/components/RulesModal';
 
 function HomeContent() {
   const router = useRouter();
@@ -21,6 +22,7 @@ function HomeContent() {
   const [timerDuration, setTimerDuration] = useState(60);
   const [totalRounds, setTotalRounds] = useState(5);
   const [maxPlayers, setMaxPlayers] = useState(10);
+  const [showRules, setShowRules] = useState(false);
 
   const playClick = () => { if (soundEnabled) sounds.click(); };
 
@@ -131,6 +133,9 @@ function HomeContent() {
               <button className="btn btn-secondary" onClick={() => { setMode('join'); playClick(); }}>
                 {t(lang, 'joinGame')}
               </button>
+              <button className="btn btn-secondary" onClick={() => { setShowRules(true); playClick(); }}>
+                📖 {t(lang, 'rules')}
+              </button>
             </div>
           </div>
         )}
@@ -216,6 +221,8 @@ function HomeContent() {
           </p>
         </div>
       </div>
+
+      <RulesModal showRules={showRules} setShowRules={setShowRules} />
     </div>
   );
 }

@@ -297,19 +297,29 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       totalPlayers: lobby.players.filter((p) => p.isConnected).length,
     });
 
-    const connectedPlayers = lobby.players.filter((p) => p.isConnected).length;
-
-    // If all players submitted, end round early
-    if (lobby.answers.length >= connectedPlayers) {
-      if (lobby.timerInterval) {
-        clearInterval(lobby.timerInterval);
-        lobby.timerInterval = null;
-      }
-      lobby.gamePhase = 'reviewing';
-      this.server.to(data.roomCode).emit('endRound', {
-        lobby: this.lobbyService.getPublicState(lobby),
-      });
+    // End round immediately when first player submits
+    if (lobby.timerInterval) {
+      clearInterval(lobby.timerInterval);
+      lobby.timerInterval = null;
     }
+
+    // Fill empty answers for players who haven't submitted
+    const connectedPlayers = lobby.players.filter((p) => p.isConnected);
+    for (const p of connectedPlayers) {
+      const hasSubmitted = lobby.answers.some((a) => a.playerId === p.socketId);
+      if (!hasSubmitted) {
+        lobby.answers.push({
+          playerId: p.socketId,
+          playerName: p.name,
+          categories: { girl: '', boy: '', animal: '', plant: '', object: '', country: '', job: '', famous: '' } as any,
+        });
+      }
+    }
+
+    lobby.gamePhase = 'reviewing';
+    this.server.to(data.roomCode).emit('endRound', {
+      lobby: this.lobbyService.getPublicState(lobby),
+    });
   }
 
   @SubscribeMessage('voteAnswer')

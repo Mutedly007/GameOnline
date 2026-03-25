@@ -1135,6 +1135,21 @@ body::before {
   left: 27px;
 }
 
+/* ===== Rules Modal ===== */
+.rules-content h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.rules-content p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
 /* ===== Top Nav Bar ===== */
 .top-nav {
   display: flex;
